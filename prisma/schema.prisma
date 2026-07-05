@@ -1,13 +1,145 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum AssemblyStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+enum ResolutionStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+enum VoteType {
+  SINGLE_CHOICE
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assemblies Assembly[]
+  members    Member[]
+}
+
+model Assembly {
+  id             String         @id @default(cuid())
+  organizationId String
+  title          String
+  date           DateTime
+  location       String
+  status         AssemblyStatus @default(DRAFT)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  resolutions  Resolution[]
+  attendances  Attendance[]
+  proxies      Proxy[]
+}
+
+model Member {
+  id             String   @id @default(cuid())
+  organizationId String
+  firstName      String
+  lastName       String
+  lotNumber      String
+  accessCode     String   @unique
+  voteWeight     Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  attendances      Attendance[]
+  votes            Vote[]
+  proxiesGiven     Proxy[] @relation("ProxyGiven")
+  proxiesReceived  Proxy[] @relation("ProxyReceived")
+}
+
+model Attendance {
+  id         String   @id @default(cuid())
+  assemblyId String
+  memberId   String
+  checkedIn  Boolean  @default(false)
+  checkedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  assembly Assembly @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+  member   Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([assemblyId, memberId])
+}
+
+model Proxy {
+  id              String   @id @default(cuid())
+  assemblyId      String
+  giverMemberId   String
+  holderMemberId  String
+  createdAt       DateTime @default(now())
+
+  assembly Assembly @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+
+  giver  Member @relation("ProxyGiven", fields: [giverMemberId], references: [id], onDelete: Cascade)
+  holder Member @relation("ProxyReceived", fields: [holderMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([assemblyId, giverMemberId])
+}
+
+model Resolution {
+  id          String           @id @default(cuid())
+  assemblyId  String
+  title       String
+  description String?
+  type        VoteType         @default(SINGLE_CHOICE)
+  status      ResolutionStatus @default(DRAFT)
+  order       Int
+  openedAt    DateTime?
+  closedAt    DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  assembly Assembly @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+
+  choices VoteChoice[]
+  votes   Vote[]
+}
+
+model VoteChoice {
+  id           String   @id @default(cuid())
+  resolutionId String
+  label        String
+  order        Int
+  createdAt    DateTime @default(now())
+
+  resolution Resolution @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
+
+  votes Vote[]
+}
+
+model Vote {
+  id           String   @id @default(cuid())
+  resolutionId String
+  memberId     String
+  choiceId     String
+  weight       Int      @default(1)
+  createdAt    DateTime @default(now())
+
+  resolution Resolution @relation(fields: [resolutionId], references: [id], onDelete: Cascade)
+  member     Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  choice     VoteChoice @relation(fields: [choiceId], references: [id], onDelete: Cascade)
+
+  @@unique([resolutionId, memberId])
 }
