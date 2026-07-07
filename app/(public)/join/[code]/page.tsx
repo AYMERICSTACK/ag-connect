@@ -2,7 +2,6 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { AutoRefresh } from "@/components/ui/AutoRefresh";
-import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -86,22 +85,24 @@ async function submitVote(formData: FormData) {
   const representedMember = await prisma.member.findUnique({ where: { id: memberId } });
   if (!representedMember) return;
 
-  try {
-    await prisma.vote.create({
-      data: {
+  await prisma.vote.upsert({
+    where: {
+      resolutionId_memberId: {
         resolutionId,
         memberId,
-        choiceId,
-        weight: representedMember.voteWeight > 0 ? representedMember.voteWeight : 1,
       },
-    });
-  } catch (error) {
-    if (typeof error === "object" && error !== null && "code" in error && (error as { code?: string }).code === "P2002") {
-      // Vote déjà enregistré : on ne modifie jamais un vote existant.
-    } else {
-      throw error;
-    }
-  }
+    },
+    update: {
+      choiceId,
+      weight: representedMember.voteWeight > 0 ? representedMember.voteWeight : 1,
+    },
+    create: {
+      resolutionId,
+      memberId,
+      choiceId,
+      weight: representedMember.voteWeight > 0 ? representedMember.voteWeight : 1,
+    },
+  });
 
   revalidatePath("/admin");
   revalidatePath("/admin/votes");
@@ -371,35 +372,51 @@ export default async function JoinCodePage({ params }: PageProps) {
                           <p className="text-lg font-semibold text-slate-950">{memberLabel(representedMember)}</p>
                         </div>
                         {existingChoice ? (
-                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">Vote verrouillé</span>
-                        ) : null}
+                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">Vote enregistré</span>
+                        ) : (
+                          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">En attente</span>
+                        )}
                       </div>
 
                       {existingChoice ? (
-                        <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                          ✅ Vote enregistré : <strong className="text-slate-950">{existingChoice.label}</strong>
-                          <p className="mt-1 text-xs text-slate-400">Ce vote est définitif et ne peut plus être modifié depuis le téléphone.</p>
+                        <div className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-100">
+                          ✅ Votre choix actuel : <strong>{existingChoice.label}</strong>
+                          <p className="mt-1 text-xs text-emerald-700/70">Vous pouvez encore modifier votre vote tant que la résolution n’est pas clôturée.</p>
                         </div>
                       ) : (
-                        <form action={submitVote} className="mt-4 grid gap-3">
-                          <input type="hidden" name="accessCode" value={member.accessCode} />
-                          <input type="hidden" name="resolutionId" value={activeResolution.id} />
-                          <input type="hidden" name="memberId" value={representedMember.id} />
-
-                          <div className="grid gap-2">
-                            {activeResolution.choices.map((choice: any) => (
-                              <label key={choice.id} className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-[#fbfaf7] px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-amber-400 hover:bg-amber-50">
-                                <input required type="radio" name="choiceId" value={choice.id} className="h-4 w-4 accent-slate-950" />
-                                {choice.label}
-                              </label>
-                            ))}
-                          </div>
-
-                          <ConfirmSubmitButton message={`Confirmer définitivement le vote pour le lot ${representedMember.lotNumber} ? Ce choix ne pourra plus être modifié.`} className="rounded-2xl bg-slate-950 px-5 py-3 font-semibold text-white transition hover:bg-slate-800">
-                            Valider définitivement ce vote
-                          </ConfirmSubmitButton>
-                        </form>
+                        <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-100">
+                          Aucun vote enregistré pour le moment.
+                          <p className="mt-1 text-xs text-amber-700/70">Touchez un choix ci-dessous : il sera enregistré immédiatement.</p>
+                        </div>
                       )}
+
+                      <div className="mt-4 grid gap-2">
+                        {activeResolution.choices.map((choice: any) => {
+                          const isSelected = existingChoice?.id === choice.id;
+
+                          return (
+                            <form key={choice.id} action={submitVote}>
+                              <input type="hidden" name="accessCode" value={member.accessCode} />
+                              <input type="hidden" name="resolutionId" value={activeResolution.id} />
+                              <input type="hidden" name="memberId" value={representedMember.id} />
+                              <input type="hidden" name="choiceId" value={choice.id} />
+                              <button
+                                type="submit"
+                                className={`w-full rounded-2xl border px-4 py-4 text-left text-sm font-semibold transition ${
+                                  isSelected
+                                    ? "border-emerald-300 bg-emerald-100 text-emerald-950 ring-2 ring-emerald-200"
+                                    : "border-slate-200 bg-[#fbfaf7] text-slate-700 hover:border-amber-400 hover:bg-amber-50"
+                                }`}
+                              >
+                                <span className="flex items-center justify-between gap-3">
+                                  <span>{choice.label}</span>
+                                  {isSelected ? <span className="text-emerald-700">✓ Choix actuel</span> : <span className="text-slate-400">Choisir</span>}
+                                </span>
+                              </button>
+                            </form>
+                          );
+                        })}
+                      </div>
                     </article>
                   );
                 })}
