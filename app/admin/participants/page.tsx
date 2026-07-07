@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { buildJoinUrl, qrCodeUrl } from "@/lib/app-url";
 
 export const dynamic = "force-dynamic";
 
@@ -190,15 +191,6 @@ async function deleteProxy(formData: FormData) {
   revalidatePath("/admin/votes");
 }
 
-function buildJoinUrl(accessCode: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  return `${baseUrl}/join/${accessCode}`;
-}
-
-function qrSvgDataUrl(value: string) {
-  const encoded = encodeURIComponent(value);
-  return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encoded}`;
-}
 
 export default async function AdminParticipantsPage() {
   const assembly = await getCurrentAssembly();
@@ -214,9 +206,8 @@ export default async function AdminParticipantsPage() {
     );
   }
 
-  const members = await prisma.member.findMany({
+  const members = (await prisma.member.findMany({
     where: { organizationId: assembly.organizationId },
-    orderBy: [{ lotNumber: "asc" }, { lastName: "asc" }],
     include: {
       attendances: { where: { assemblyId: assembly.id } },
       proxiesReceived: {
@@ -228,6 +219,11 @@ export default async function AdminParticipantsPage() {
         include: { holder: true },
       },
     },
+  })).sort((a: any, b: any) => {
+    const lotA = Number(String(a.lotNumber).match(/\d+/)?.[0] || 0);
+    const lotB = Number(String(b.lotNumber).match(/\d+/)?.[0] || 0);
+    if (lotA !== lotB) return lotA - lotB;
+    return String(a.lotNumber).localeCompare(String(b.lotNumber), "fr", { numeric: true });
   });
 
   const checkedInCount = members.filter((member: any) => member.attendances[0]?.checkedIn).length;
@@ -243,6 +239,7 @@ export default async function AdminParticipantsPage() {
               <div className="flex flex-wrap gap-2">
                 <Link href="/admin" className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white/75 transition hover:bg-white/15 hover:text-white">← Centre de pilotage</Link>
                 <Link href="/admin/votes" className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white/75 transition hover:bg-white/15 hover:text-white">🗳️ Votes</Link>
+                <Link href="/admin/participants/qrcodes" className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white/75 transition hover:bg-white/15 hover:text-white">🖨️ Planche QR Codes</Link>
               </div>
               <p className="mt-6 text-sm uppercase tracking-[0.35em] text-amber-200/80">{assembly.organization.name}</p>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-5xl">Propriétaires, présences & procurations</h1>
@@ -376,7 +373,7 @@ export default async function AdminParticipantsPage() {
                     <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                       <a href={joinUrl} target="_blank" className="inline-flex items-center gap-3 rounded-2xl bg-[#fbfaf7] p-2 ring-1 ring-slate-200 transition hover:bg-amber-50" rel="noreferrer">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={qrSvgDataUrl(joinUrl)} alt={`QR Code lot ${member.lotNumber}`} className="h-14 w-14 rounded-xl" /><span className="hidden text-xs font-medium text-slate-500 sm:inline">QR</span>
+                        <img src={qrCodeUrl(joinUrl)} alt={`QR Code lot ${member.lotNumber}`} className="h-14 w-14 rounded-xl" /><span className="hidden text-xs font-medium text-slate-500 sm:inline">QR</span>
                       </a>
                       {attendance ? <form action={toggleAttendance}><input type="hidden" name="attendanceId" value={attendance.id} /><input type="hidden" name="checkedIn" value={isPresent ? "false" : "true"} /><button className="rounded-full bg-slate-950 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800">{isPresent ? "Retirer" : "Présent"}</button></form> : null}
                       <form action={deleteMember}><input type="hidden" name="memberId" value={member.id} /><button className="rounded-full bg-white px-3 py-2 text-xs font-semibold text-red-600 ring-1 ring-red-100 transition hover:bg-red-50">Suppr.</button></form>
