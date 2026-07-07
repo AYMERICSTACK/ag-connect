@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
 }
 
 datasource db {
@@ -48,6 +49,7 @@ model Assembly {
   resolutions  Resolution[]
   attendances  Attendance[]
   proxies      Proxy[]
+  events       AssemblyEvent[]
 }
 
 model Member {
@@ -56,6 +58,9 @@ model Member {
   firstName      String
   lastName       String
   lotNumber      String
+  address        String?
+  phone          String?
+  email          String?
   accessCode     String   @unique
   voteWeight     Int      @default(1)
   createdAt      DateTime @default(now())
@@ -67,6 +72,8 @@ model Member {
   votes            Vote[]
   proxiesGiven     Proxy[] @relation("ProxyGiven")
   proxiesReceived  Proxy[] @relation("ProxyReceived")
+
+  @@unique([organizationId, lotNumber])
 }
 
 model Attendance {
@@ -105,6 +112,7 @@ model Resolution {
   description String?
   type        VoteType         @default(SINGLE_CHOICE)
   status      ResolutionStatus @default(DRAFT)
+  isActive    Boolean          @default(true)
   order       Int
   openedAt    DateTime?
   closedAt    DateTime?
@@ -142,4 +150,18 @@ model Vote {
   choice     VoteChoice @relation(fields: [choiceId], references: [id], onDelete: Cascade)
 
   @@unique([resolutionId, memberId])
+}
+
+
+model AssemblyEvent {
+  id         String   @id @default(cuid())
+  assemblyId String
+  label      String
+  detail     String?
+  type       String   @default("INFO")
+  createdAt  DateTime @default(now())
+
+  assembly Assembly @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+
+  @@index([assemblyId, createdAt])
 }
