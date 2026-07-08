@@ -27,9 +27,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 {link.label}
               </Link>
             ))}
-            <Link href="/logout" className="rounded-full bg-slate-950 px-4 py-2 text-white transition hover:bg-slate-800">
-              Déconnexion
-            </Link>
+            <form action="/logout" method="post">
+              <button type="submit" className="rounded-full bg-slate-950 px-4 py-2 text-white transition hover:bg-slate-800">
+                Déconnexion
+              </button>
+            </form>
           </nav>
         </div>
       </header>
