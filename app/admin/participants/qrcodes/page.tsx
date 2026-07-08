@@ -1,12 +1,10 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { buildJoinUrl, qrCodeUrl } from "@/lib/app-url";
+import { formatMemberDisplay } from "@/lib/member-display";
 
 export const dynamic = "force-dynamic";
 
-function memberLabel(member: any) {
-  return `${member.firstName || ""} ${member.lastName || ""}`.replace(/\s+/g, " ").trim();
-}
 
 async function getCurrentAssembly() {
   return prisma.assembly.findFirst({
@@ -81,7 +79,7 @@ export default async function ParticipantsQrCodesPage() {
                     <img src={qrCodeUrl(joinUrl, 220)} alt={`QR Code lot ${member.lotNumber}`} className="h-28 w-28 rounded-2xl bg-white p-2 ring-1 ring-slate-200 print:h-24 print:w-24" />
                     <div className="min-w-0">
                       <p className="inline-flex rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">Lot {member.lotNumber}</p>
-                      <h2 className="mt-3 truncate text-lg font-semibold tracking-tight">{memberLabel(member)}</h2>
+                      <h2 className="mt-3 truncate text-lg font-semibold tracking-tight">{formatMemberDisplay(member)}</h2>
                       <p className="mt-1 text-xs text-slate-500">Code : {member.accessCode}</p>
                       <p className="mt-2 break-all text-[10px] leading-4 text-slate-400 print:hidden">{joinUrl}</p>
                     </div>

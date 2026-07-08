@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { AutoRefresh } from "@/components/ui/AutoRefresh";
 import { ConfirmSubmitButton } from "@/components/ui/ConfirmSubmitButton";
+import { formatMemberDisplay } from "@/lib/member-display";
 
 export const dynamic = "force-dynamic";
 
@@ -80,9 +81,6 @@ async function closeResolution(formData: FormData) {
   revalidatePath("/admin/votes");
 }
 
-function memberLabel(member: any) {
-  return `${member.firstName || ""} ${member.lastName || ""}`.replace(/\s+/g, " ").trim();
-}
 
 function sortByLot(a: any, b: any) {
   return Number(a.lotNumber) - Number(b.lotNumber);
@@ -286,7 +284,7 @@ export default async function AdminVotesPage() {
                             const vote = resolution.votes.find((item: any) => item.memberId === member.id);
                             return (
                               <p key={member.id} className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-100">
-                                ✓ Lot {member.lotNumber} · {memberLabel(member)}{vote?.choice?.label ? ` · ${vote.choice.label}` : ""}
+                                ✓ Lot {member.lotNumber} · {formatMemberDisplay(member)}{vote?.choice?.label ? ` · ${vote.choice.label}` : ""}
                               </p>
                             );
                           })
@@ -302,7 +300,7 @@ export default async function AdminVotesPage() {
                         ) : (
                           stats.waitingMembers.map((member: any) => (
                             <p key={member.id} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                              ○ Lot {member.lotNumber} · {memberLabel(member)}
+                              ○ Lot {member.lotNumber} · {formatMemberDisplay(member)}
                             </p>
                           ))
                         )}

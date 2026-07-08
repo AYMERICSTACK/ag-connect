@@ -2,6 +2,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { buildJoinUrl, qrCodeUrl } from "@/lib/app-url";
+import { formatMemberDisplay } from "@/lib/member-display";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +28,6 @@ async function getCurrentAssembly() {
   });
 }
 
-function memberLabel(member: any) {
-  return `${member.firstName || ""} ${member.lastName || ""}`.replace(/\s+/g, " ").trim();
-}
 
 async function createMember(formData: FormData) {
   "use server";
@@ -336,15 +334,15 @@ export default async function AdminParticipantsPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-amber-700">Procurations</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">Déclarer un mandat</h2>
             <form action={createProxy} className="mt-6 grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-              <label className="grid gap-2 text-sm font-medium text-slate-700">Propriétaire absent<select name="giverMemberId" required className="rounded-2xl border border-slate-200 bg-[#fbfaf7] px-4 py-3 outline-none transition focus:border-amber-500"><option value="">Sélectionner</option>{members.map((member: any) => (<option key={member.id} value={member.id}>Lot {member.lotNumber} · {memberLabel(member)}</option>))}</select></label>
-              <label className="grid gap-2 text-sm font-medium text-slate-700">Représenté par<select name="holderMemberId" required className="rounded-2xl border border-slate-200 bg-[#fbfaf7] px-4 py-3 outline-none transition focus:border-amber-500"><option value="">Sélectionner</option>{members.map((member: any) => (<option key={member.id} value={member.id}>Lot {member.lotNumber} · {memberLabel(member)}</option>))}</select></label>
+              <label className="grid gap-2 text-sm font-medium text-slate-700">Propriétaire absent<select name="giverMemberId" required className="rounded-2xl border border-slate-200 bg-[#fbfaf7] px-4 py-3 outline-none transition focus:border-amber-500"><option value="">Sélectionner</option>{members.map((member: any) => (<option key={member.id} value={member.id}>Lot {member.lotNumber} · {formatMemberDisplay(member)}</option>))}</select></label>
+              <label className="grid gap-2 text-sm font-medium text-slate-700">Représenté par<select name="holderMemberId" required className="rounded-2xl border border-slate-200 bg-[#fbfaf7] px-4 py-3 outline-none transition focus:border-amber-500"><option value="">Sélectionner</option>{members.map((member: any) => (<option key={member.id} value={member.id}>Lot {member.lotNumber} · {formatMemberDisplay(member)}</option>))}</select></label>
               <button className="rounded-2xl bg-amber-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-amber-400">Ajouter</button>
             </form>
 
             <div className="mt-6 space-y-3">
               {assembly.proxies.length === 0 ? <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">Aucune procuration enregistrée pour l’instant.</p> : assembly.proxies.map((proxy: any) => (
                 <div key={proxy.id} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-[#fbfaf7] p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-slate-600"><span className="font-semibold text-slate-950">Lot {proxy.giver.lotNumber} · {memberLabel(proxy.giver)}</span> est représenté par <span className="font-semibold text-slate-950">Lot {proxy.holder.lotNumber} · {memberLabel(proxy.holder)}</span></p>
+                  <p className="text-sm text-slate-600"><span className="font-semibold text-slate-950">Lot {proxy.giver.lotNumber} · {formatMemberDisplay(proxy.giver)}</span> est représenté par <span className="font-semibold text-slate-950">Lot {proxy.holder.lotNumber} · {formatMemberDisplay(proxy.holder)}</span></p>
                   <form action={deleteProxy}><input type="hidden" name="proxyId" value={proxy.id} /><button className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-red-600 ring-1 ring-red-100 transition hover:bg-red-50">Supprimer</button></form>
                 </div>
               ))}
@@ -366,7 +364,7 @@ export default async function AdminParticipantsPage() {
                   <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-start">
                     <div>
                       <div className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">Lot {member.lotNumber}</span><span className={`rounded-full px-3 py-1 text-xs font-semibold ${isPresent ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100" : "bg-slate-100 text-slate-500"}`}>{isPresent ? "Présent" : "Non pointé"}</span>{member.proxiesReceived.length > 0 ? <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">{member.proxiesReceived.length} procuration(s)</span> : null}</div>
-                      <h3 className="mt-3 text-xl font-semibold tracking-tight">{memberLabel(member)}</h3>
+                      <h3 className="mt-3 text-xl font-semibold tracking-tight">{formatMemberDisplay(member)}</h3>
                       <p className="mt-1 text-sm text-slate-500">{member.address || "Adresse non renseignée"} · {member.phone || "Téléphone non renseigné"} · {member.email || "Email non renseigné"}</p>
                       <p className="mt-1 text-xs text-slate-400">Code : {member.accessCode} · poids {member.voteWeight}</p>
                     </div>

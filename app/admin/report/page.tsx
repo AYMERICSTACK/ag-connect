@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PrintButton } from "@/components/ui/PrintButton";
+import { formatMemberDisplay } from "@/lib/member-display";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +31,6 @@ function formatTime(date?: Date | null) {
   }).format(date);
 }
 
-function memberLabel(member: any) {
-  return `${member.firstName || ""} ${member.lastName || ""}`.replace(/\s+/g, " ").trim() || member.lastName || `Lot ${member.lotNumber}`;
-}
 
 function sortByLot(a: any, b: any) {
   const aLot = Number(a.lotNumber);
@@ -241,9 +239,9 @@ export default async function AdminReportPage() {
                     return (
                       <tr key={member.id} className="border-t border-slate-200">
                         <td className="px-4 py-3 font-semibold">{member.lotNumber}</td>
-                        <td className="px-4 py-3">{memberLabel(member)}</td>
+                        <td className="px-4 py-3">{formatMemberDisplay(member)}</td>
                         <td className="px-4 py-3">{directPresence ? "Présent" : "Représenté"}</td>
-                        <td className="px-4 py-3">{proxy ? `${memberLabel(proxy.holder)} — Lot ${proxy.holder.lotNumber}` : "—"}</td>
+                        <td className="px-4 py-3">{proxy ? `${formatMemberDisplay(proxy.holder)} — Lot ${proxy.holder.lotNumber}` : "—"}</td>
                       </tr>
                     );
                   })}
