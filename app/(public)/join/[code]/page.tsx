@@ -68,9 +68,13 @@ async function submitVote(formData: FormData) {
 
   if (!currentMember) return;
 
-  const attendance = currentMember.attendances.find((item: any) => item.assemblyId === resolution.assemblyId);
+  const attendance = currentMember.attendances.find(
+    (item: any) => item.assemblyId === resolution.assemblyId,
+  );
   const isCheckedIn = Boolean(attendance?.checkedIn);
-  const proxyGiven = currentMember.proxiesGiven.find((proxy: any) => proxy.assemblyId === resolution.assemblyId);
+  const proxyGiven = currentMember.proxiesGiven.find(
+    (proxy: any) => proxy.assemblyId === resolution.assemblyId,
+  );
 
   if (!isCheckedIn || proxyGiven) return;
 
@@ -83,7 +87,9 @@ async function submitVote(formData: FormData) {
 
   if (!representedMemberIds.has(memberId)) return;
 
-  const representedMember = await prisma.member.findUnique({ where: { id: memberId } });
+  const representedMember = await prisma.member.findUnique({
+    where: { id: memberId },
+  });
   if (!representedMember) return;
 
   await prisma.vote.upsert({
@@ -95,13 +101,15 @@ async function submitVote(formData: FormData) {
     },
     update: {
       choiceId,
-      weight: representedMember.voteWeight > 0 ? representedMember.voteWeight : 1,
+      weight:
+        representedMember.voteWeight > 0 ? representedMember.voteWeight : 1,
     },
     create: {
       resolutionId,
       memberId,
       choiceId,
-      weight: representedMember.voteWeight > 0 ? representedMember.voteWeight : 1,
+      weight:
+        representedMember.voteWeight > 0 ? representedMember.voteWeight : 1,
     },
   });
 
@@ -111,15 +119,28 @@ async function submitVote(formData: FormData) {
 }
 
 function memberLabel(member: any) {
-  return `${member.firstName || ""} ${member.lastName || ""}`.replace(/\s+/g, " ").trim();
+  return `${member.firstName || ""} ${member.lastName || ""}`
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
+type VoteMapItem = {
+  memberId: string;
+  choiceId: string;
+};
 
 function getResolutionResult(resolution: any) {
-  const totalWeight = resolution.votes.reduce((sum: number, vote: any) => sum + (vote.weight || 1), 0);
+  const totalWeight = resolution.votes.reduce(
+    (sum: number, vote: any) => sum + (vote.weight || 1),
+    0,
+  );
   const choices = resolution.choices.map((choice: any) => {
-    const weight = choice.votes.reduce((sum: number, vote: any) => sum + (vote.weight || 1), 0);
-    const percent = totalWeight > 0 ? Math.round((weight / totalWeight) * 100) : 0;
+    const weight = choice.votes.reduce(
+      (sum: number, vote: any) => sum + (vote.weight || 1),
+      0,
+    );
+    const percent =
+      totalWeight > 0 ? Math.round((weight / totalWeight) * 100) : 0;
 
     return {
       id: choice.id,
@@ -130,17 +151,22 @@ function getResolutionResult(resolution: any) {
   });
 
   const normalized = (value: string) => value.trim().toLowerCase();
-  const pour = choices.find((choice: any) => normalized(choice.label) === "pour");
-  const contre = choices.find((choice: any) => normalized(choice.label) === "contre");
+  const pour = choices.find(
+    (choice: any) => normalized(choice.label) === "pour",
+  );
+  const contre = choices.find(
+    (choice: any) => normalized(choice.label) === "contre",
+  );
   const winner = [...choices].sort((a: any, b: any) => b.weight - a.weight)[0];
 
-  const decision = pour && contre
-    ? pour.weight > contre.weight
-      ? "Résolution adoptée"
-      : "Résolution rejetée"
-    : winner && winner.weight > 0
-      ? `Choix majoritaire : ${winner.label}`
-      : "Aucun vote exprimé";
+  const decision =
+    pour && contre
+      ? pour.weight > contre.weight
+        ? "Résolution adoptée"
+        : "Résolution rejetée"
+      : winner && winner.weight > 0
+        ? `Choix majoritaire : ${winner.label}`
+        : "Aucun vote exprimé";
 
   return { totalWeight, choices, decision };
 }
@@ -152,9 +178,17 @@ function ResultCard({ resolution }: { resolution: any }) {
     <section className="mt-8 rounded-[2rem] border border-blue-200 bg-blue-50 p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-blue-700">Résultat publié</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-blue-950">{resolution.title}</h2>
-          {resolution.description ? <p className="mt-2 text-sm text-blue-900/70">{resolution.description}</p> : null}
+          <p className="text-sm font-semibold uppercase tracking-[0.25em] text-blue-700">
+            Résultat publié
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-blue-950">
+            {resolution.title}
+          </h2>
+          {resolution.description ? (
+            <p className="mt-2 text-sm text-blue-900/70">
+              {resolution.description}
+            </p>
+          ) : null}
         </div>
         <div className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-blue-800 ring-1 ring-blue-100">
           {result.totalWeight} voix exprimée(s)
@@ -163,22 +197,34 @@ function ResultCard({ resolution }: { resolution: any }) {
 
       <div className="mt-5 grid gap-3">
         {result.choices.map((choice: any) => (
-          <div key={choice.id} className="rounded-2xl bg-white p-4 ring-1 ring-blue-100">
+          <div
+            key={choice.id}
+            className="rounded-2xl bg-white p-4 ring-1 ring-blue-100"
+          >
             <div className="flex items-center justify-between gap-4">
               <p className="font-semibold text-slate-950">{choice.label}</p>
-              <p className="text-sm font-semibold text-slate-600">{choice.weight} voix · {choice.percent}%</p>
+              <p className="text-sm font-semibold text-slate-600">
+                {choice.weight} voix · {choice.percent}%
+              </p>
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-blue-700" style={{ width: `${choice.percent}%` }} />
+              <div
+                className="h-full rounded-full bg-blue-700"
+                style={{ width: `${choice.percent}%` }}
+              />
             </div>
           </div>
         ))}
       </div>
 
       <div className="mt-5 rounded-2xl bg-slate-950 px-5 py-4 text-center text-white">
-        <p className="text-sm uppercase tracking-[0.25em] text-white/45">Décision</p>
+        <p className="text-sm uppercase tracking-[0.25em] text-white/45">
+          Décision
+        </p>
         <p className="mt-1 text-xl font-semibold">{result.decision}</p>
-        <p className="mt-2 text-xs text-white/45">Le résultat s’affiche uniquement après clôture du vote par le bureau.</p>
+        <p className="mt-2 text-xs text-white/45">
+          Le résultat s’affiche uniquement après clôture du vote par le bureau.
+        </p>
       </div>
     </section>
   );
@@ -220,10 +266,21 @@ export default async function JoinCodePage({ params }: PageProps) {
     return (
       <main className="min-h-screen bg-[#f7f4ef] px-5 py-8 text-slate-950">
         <section className="mx-auto max-w-xl rounded-[2rem] bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-700">AG Connect</p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight">Accès introuvable</h1>
-          <p className="mt-3 text-slate-500">Le QR Code scanné ne correspond à aucun propriétaire enregistré.</p>
-          <Link href="/" className="mt-6 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white">Retour</Link>
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-700">
+            AG Connect
+          </p>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight">
+            Accès introuvable
+          </h1>
+          <p className="mt-3 text-slate-500">
+            Le QR Code scanné ne correspond à aucun propriétaire enregistré.
+          </p>
+          <Link
+            href="/"
+            className="mt-6 inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white"
+          >
+            Retour
+          </Link>
         </section>
       </main>
     );
@@ -232,8 +289,12 @@ export default async function JoinCodePage({ params }: PageProps) {
   const attendance = member.attendances[0];
   const assembly = attendance?.assembly;
   const isCheckedIn = Boolean(attendance?.checkedIn);
-  const proxyGiven = member.proxiesGiven.find((proxy: any) => proxy.assemblyId === assembly?.id);
-  const proxiesReceived = member.proxiesReceived.filter((proxy: any) => proxy.assemblyId === assembly?.id);
+  const proxyGiven = member.proxiesGiven.find(
+    (proxy: any) => proxy.assemblyId === assembly?.id,
+  );
+  const proxiesReceived = member.proxiesReceived.filter(
+    (proxy: any) => proxy.assemblyId === assembly?.id,
+  );
 
   const activeResolution = assembly
     ? await prisma.resolution.findFirst({
@@ -265,7 +326,11 @@ export default async function JoinCodePage({ params }: PageProps) {
   const latestClosedResolution = closedResolutions.at(-1);
 
   const representedVotesCount = activeResolution
-    ? representedMembers.filter((representedMember: any) => activeResolution.votes.some((vote: any) => vote.memberId === representedMember.id)).length
+    ? representedMembers.filter((representedMember: any) =>
+        activeResolution.votes.some(
+          (vote: any) => vote.memberId === representedMember.id,
+        ),
+      ).length
     : 0;
 
   return (
@@ -273,30 +338,49 @@ export default async function JoinCodePage({ params }: PageProps) {
       <AutoRefresh interval={2000} />
       <section className="mx-auto max-w-3xl">
         <div className="rounded-[2rem] bg-slate-950 p-6 text-white shadow-2xl shadow-slate-950/20 sm:p-8">
-          <p className="text-sm uppercase tracking-[0.35em] text-amber-200/80">{member.organization.name}</p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-5xl">Bienvenue</h1>
+          <p className="text-sm uppercase tracking-[0.35em] text-amber-200/80">
+            {member.organization.name}
+          </p>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight sm:text-5xl">
+            Bienvenue
+          </h1>
           <p className="mt-3 text-xl text-white/85">{memberLabel(member)}</p>
-          <p className="mt-1 text-white/60">Lot {member.lotNumber} · Code {member.accessCode}</p>
+          <p className="mt-1 text-white/60">
+            Lot {member.lotNumber} · Code {member.accessCode}
+          </p>
         </div>
 
         <div className="mt-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm shadow-slate-900/5 sm:p-8">
           {assembly ? (
             <div className="rounded-3xl bg-[#fbfaf7] p-5 ring-1 ring-slate-200">
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">Assemblée</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight">{assembly.title}</h2>
-              <p className="mt-2 text-sm text-slate-500">{formatDate(assembly.date)} · {assembly.location}</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-amber-700">
+                Assemblée
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+                {assembly.title}
+              </h2>
+              <p className="mt-2 text-sm text-slate-500">
+                {formatDate(assembly.date)} · {assembly.location}
+              </p>
             </div>
           ) : null}
 
           <div className="mt-6 grid gap-3">
             {proxyGiven ? (
               <div className="rounded-2xl bg-amber-50 px-4 py-4 text-sm text-amber-900 ring-1 ring-amber-100">
-                Vous êtes indiqué comme absent et représenté par <strong>{memberLabel(proxyGiven.holder)}</strong>. Vous ne votez donc pas depuis ce téléphone.
+                Vous êtes indiqué comme absent et représenté par{" "}
+                <strong>{memberLabel(proxyGiven.holder)}</strong>. Vous ne votez
+                donc pas depuis ce téléphone.
               </div>
             ) : null}
             {proxiesReceived.length > 0 ? (
               <div className="rounded-2xl bg-emerald-50 px-4 py-4 text-sm text-emerald-900 ring-1 ring-emerald-100">
-                Vous représentez aussi {proxiesReceived.length} propriétaire(s) : {proxiesReceived.map((proxy: any) => `lot ${proxy.giver.lotNumber}`).join(", ")}. Un vote séparé sera demandé pour chaque lot représenté.
+                Vous représentez aussi {proxiesReceived.length} propriétaire(s)
+                :{" "}
+                {proxiesReceived
+                  .map((proxy: any) => `lot ${proxy.giver.lotNumber}`)
+                  .join(", ")}
+                . Un vote séparé sera demandé pour chaque lot représenté.
               </div>
             ) : null}
           </div>
@@ -304,7 +388,11 @@ export default async function JoinCodePage({ params }: PageProps) {
           {attendance && !isCheckedIn && !proxyGiven ? (
             <form action={checkIn} className="mt-8">
               <input type="hidden" name="attendanceId" value={attendance.id} />
-              <input type="hidden" name="accessCode" value={member.accessCode} />
+              <input
+                type="hidden"
+                name="accessCode"
+                value={member.accessCode}
+              />
               <button className="w-full rounded-2xl bg-slate-950 px-5 py-4 text-base font-semibold text-white transition hover:bg-slate-800">
                 Confirmer ma présence
               </button>
@@ -313,29 +401,49 @@ export default async function JoinCodePage({ params }: PageProps) {
 
           {isCheckedIn && !activeResolution ? (
             <>
-              {latestClosedResolution ? <ResultCard resolution={latestClosedResolution} /> : null}
+              {latestClosedResolution ? (
+                <ResultCard resolution={latestClosedResolution} />
+              ) : null}
 
               <div className="mt-8 rounded-3xl bg-slate-950 p-6 text-center text-white">
                 <p className="text-3xl">✅</p>
-                <p className="mt-3 text-lg font-semibold">Vous êtes prêt pour la suite de l’assemblée.</p>
-                <p className="mt-2 text-sm text-white/60">Les prochains votes apparaîtront ici lorsque le bureau les ouvrira.</p>
-                <p className="mt-3 text-xs text-white/40">La page se met à jour automatiquement.</p>
+                <p className="mt-3 text-lg font-semibold">
+                  Vous êtes prêt pour la suite de l’assemblée.
+                </p>
+                <p className="mt-2 text-sm text-white/60">
+                  Les prochains votes apparaîtront ici lorsque le bureau les
+                  ouvrira.
+                </p>
+                <p className="mt-3 text-xs text-white/40">
+                  La page se met à jour automatiquement.
+                </p>
               </div>
 
               {closedResolutions.length > 1 ? (
                 <section className="mt-6 rounded-[2rem] border border-slate-200 bg-[#fbfaf7] p-5">
-                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">Résultats précédents</p>
+                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-400">
+                    Résultats précédents
+                  </p>
                   <div className="mt-4 grid gap-3">
                     {closedResolutions.slice(0, -1).map((resolution: any) => {
                       const result = getResolutionResult(resolution);
 
                       return (
-                        <div key={resolution.id} className="rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200">
+                        <div
+                          key={resolution.id}
+                          className="rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200"
+                        >
                           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                            <p className="font-semibold text-slate-950">{resolution.title}</p>
-                            <p className="text-sm font-semibold text-slate-500">{result.decision}</p>
+                            <p className="font-semibold text-slate-950">
+                              {resolution.title}
+                            </p>
+                            <p className="text-sm font-semibold text-slate-500">
+                              {result.decision}
+                            </p>
                           </div>
-                          <p className="mt-1 text-xs text-slate-400">{result.totalWeight} voix exprimée(s)</p>
+                          <p className="mt-1 text-xs text-slate-400">
+                            {result.totalWeight} voix exprimée(s)
+                          </p>
                         </div>
                       );
                     })}
@@ -345,132 +453,199 @@ export default async function JoinCodePage({ params }: PageProps) {
             </>
           ) : null}
 
-          {activeResolution && isCheckedIn ? (() => {
-            const voteByMemberId = new Map(activeResolution.votes.map((vote: any) => [vote.memberId, vote]));
-            const pendingMembers = representedMembers.filter((representedMember: any) => !voteByMemberId.has(representedMember.id));
-            const activeVoteMember = pendingMembers[0] ?? null;
-            const allVotesDone = pendingMembers.length === 0;
-            const editableMembers = allVotesDone ? representedMembers : activeVoteMember ? [activeVoteMember] : [];
+          {activeResolution && isCheckedIn
+            ? (() => {
+                const voteByMemberId = new Map<string, VoteMapItem>(
+                  activeResolution.votes.map((vote: any) => [
+                    vote.memberId,
+                    {
+                      memberId: vote.memberId,
+                      choiceId: vote.choiceId,
+                    },
+                  ]),
+                );
+                const pendingMembers = representedMembers.filter(
+                  (representedMember: any) =>
+                    !voteByMemberId.has(representedMember.id),
+                );
+                const activeVoteMember = pendingMembers[0] ?? null;
+                const allVotesDone = pendingMembers.length === 0;
+                const editableMembers = allVotesDone
+                  ? representedMembers
+                  : activeVoteMember
+                    ? [activeVoteMember]
+                    : [];
 
-            return (
-              <section className="mt-8 rounded-[2rem] border border-emerald-200 bg-emerald-50 p-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700">Vote ouvert</p>
-                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-emerald-950">{activeResolution.title}</h2>
-                    {activeResolution.description ? <p className="mt-2 text-sm text-emerald-900/70">{activeResolution.description}</p> : null}
-                  </div>
-                  <div className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-100">
-                    {representedVotesCount} / {representedMembers.length} vote(s) enregistré(s)
-                  </div>
-                </div>
+                return (
+                  <section className="mt-8 rounded-[2rem] border border-emerald-200 bg-emerald-50 p-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700">
+                          Vote ouvert
+                        </p>
+                        <h2 className="mt-2 text-2xl font-semibold tracking-tight text-emerald-950">
+                          {activeResolution.title}
+                        </h2>
+                        {activeResolution.description ? (
+                          <p className="mt-2 text-sm text-emerald-900/70">
+                            {activeResolution.description}
+                          </p>
+                        ) : null}
+                      </div>
+                      <div className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-100">
+                        {representedVotesCount} / {representedMembers.length}{" "}
+                        vote(s) enregistré(s)
+                      </div>
+                    </div>
 
-                {representedMembers.length > 1 ? (
-                  <div className="mt-5 rounded-3xl bg-white p-4 ring-1 ring-emerald-100">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Lots à voter</p>
-                    <div className="mt-3 grid gap-2">
-                      {representedMembers.map((representedMember: any) => {
-                        const vote = voteByMemberId.get(representedMember.id);
-                        const choice = vote
-                          ? activeResolution.choices.find((item: any) => item.id === vote.choiceId)
+                    {representedMembers.length > 1 ? (
+                      <div className="mt-5 rounded-3xl bg-white p-4 ring-1 ring-emerald-100">
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
+                          Lots à voter
+                        </p>
+                        <div className="mt-3 grid gap-2">
+                          {representedMembers.map((representedMember: any) => {
+                            const vote = voteByMemberId.get(
+                              representedMember.id,
+                            );
+                            const choice = vote
+                              ? activeResolution.choices.find(
+                                  (item: any) => item.id === vote.choiceId,
+                                )
+                              : null;
+                            const isCurrent =
+                              activeVoteMember?.id === representedMember.id;
+
+                            return (
+                              <div
+                                key={representedMember.id}
+                                className={`flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm ring-1 ${
+                                  isCurrent
+                                    ? "bg-emerald-50 text-emerald-950 ring-emerald-200"
+                                    : vote
+                                      ? "bg-white text-slate-700 ring-slate-200"
+                                      : "bg-amber-50 text-amber-900 ring-amber-100"
+                                }`}
+                              >
+                                <div>
+                                  <p className="font-semibold">
+                                    Lot {representedMember.lotNumber}
+                                  </p>
+                                  <p className="text-xs opacity-70">
+                                    {memberLabel(representedMember)}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  {choice ? (
+                                    <>
+                                      <p className="font-semibold text-emerald-700">
+                                        ✓ {choice.label}
+                                      </p>
+                                      <p className="text-xs text-slate-400">
+                                        modifiable
+                                      </p>
+                                    </>
+                                  ) : isCurrent ? (
+                                    <p className="font-semibold text-amber-700">
+                                      À voter maintenant
+                                    </p>
+                                  ) : (
+                                    <p className="font-semibold text-slate-400">
+                                      En attente
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {!allVotesDone && representedMembers.length > 1 ? (
+                      <div className="mt-5 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900 ring-1 ring-blue-100">
+                        Chaque lot dispose d'une voix. Après validation du lot
+                        actuel, l'application passera automatiquement au lot
+                        suivant.
+                      </div>
+                    ) : null}
+
+                    <div className="mt-5 grid gap-4">
+                      {editableMembers.map((representedMember: any) => {
+                        const existingVote = voteByMemberId.get(
+                          representedMember.id,
+                        );
+                        const existingChoice = existingVote
+                          ? activeResolution.choices.find(
+                              (choice: any) =>
+                                choice.id === existingVote.choiceId,
+                            )
                           : null;
-                        const isCurrent = activeVoteMember?.id === representedMember.id;
 
                         return (
-                          <div
+                          <article
                             key={representedMember.id}
-                            className={`flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm ring-1 ${
-                              isCurrent
-                                ? "bg-emerald-50 text-emerald-950 ring-emerald-200"
-                                : vote
-                                  ? "bg-white text-slate-700 ring-slate-200"
-                                  : "bg-amber-50 text-amber-900 ring-amber-100"
-                            }`}
+                            className="rounded-3xl bg-white p-5 ring-1 ring-emerald-100"
                           >
-                            <div>
-                              <p className="font-semibold">Lot {representedMember.lotNumber}</p>
-                              <p className="text-xs opacity-70">{memberLabel(representedMember)}</p>
-                            </div>
-                            <div className="text-right">
-                              {choice ? (
-                                <>
-                                  <p className="font-semibold text-emerald-700">✓ {choice.label}</p>
-                                  <p className="text-xs text-slate-400">modifiable</p>
-                                </>
-                              ) : isCurrent ? (
-                                <p className="font-semibold text-amber-700">À voter maintenant</p>
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">
+                                  {allVotesDone
+                                    ? "Vote enregistré et modifiable"
+                                    : "Vote à exprimer maintenant"}
+                                </p>
+                                <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+                                  Lot {representedMember.lotNumber}
+                                </h3>
+                                <p className="mt-1 text-sm text-slate-500">
+                                  {memberLabel(representedMember)}
+                                </p>
+                              </div>
+                              {existingChoice ? (
+                                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
+                                  Vote enregistré : {existingChoice.label}
+                                </span>
                               ) : (
-                                <p className="font-semibold text-slate-400">En attente</p>
+                                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
+                                  En attente
+                                </span>
                               )}
                             </div>
-                          </div>
+
+                            <VoteChoiceCards
+                              accessCode={member.accessCode}
+                              resolutionId={activeResolution.id}
+                              memberId={representedMember.id}
+                              choices={activeResolution.choices.map(
+                                (choice: any) => ({
+                                  id: choice.id,
+                                  label: choice.label,
+                                }),
+                              )}
+                              currentChoiceId={existingChoice?.id ?? null}
+                              submitVote={submitVote}
+                            />
+                          </article>
                         );
                       })}
                     </div>
-                  </div>
-                ) : null}
 
-                {!allVotesDone && representedMembers.length > 1 ? (
-                  <div className="mt-5 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900 ring-1 ring-blue-100">
-                    Chaque lot dispose d'une voix. Après validation du lot actuel, l'application passera automatiquement au lot suivant.
-                  </div>
-                ) : null}
-
-                <div className="mt-5 grid gap-4">
-                  {editableMembers.map((representedMember: any) => {
-                    const existingVote = voteByMemberId.get(representedMember.id);
-                    const existingChoice = existingVote
-                      ? activeResolution.choices.find((choice: any) => choice.id === existingVote.choiceId)
-                      : null;
-
-                    return (
-                      <article key={representedMember.id} className="rounded-3xl bg-white p-5 ring-1 ring-emerald-100">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
-                            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">
-                              {allVotesDone ? "Vote enregistré et modifiable" : "Vote à exprimer maintenant"}
-                            </p>
-                            <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
-                              Lot {representedMember.lotNumber}
-                            </h3>
-                            <p className="mt-1 text-sm text-slate-500">{memberLabel(representedMember)}</p>
-                          </div>
-                          {existingChoice ? (
-                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
-                              Vote enregistré : {existingChoice.label}
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
-                              En attente
-                            </span>
-                          )}
-                        </div>
-
-                        <VoteChoiceCards
-                          accessCode={member.accessCode}
-                          resolutionId={activeResolution.id}
-                          memberId={representedMember.id}
-                          choices={activeResolution.choices.map((choice: any) => ({ id: choice.id, label: choice.label }))}
-                          currentChoiceId={existingChoice?.id ?? null}
-                          submitVote={submitVote}
-                        />
-                      </article>
-                    );
-                  })}
-                </div>
-
-                {allVotesDone && representedMembers.length > 1 ? (
-                  <div className="mt-5 rounded-3xl bg-slate-950 p-5 text-center text-white">
-                    <p className="text-3xl">✅</p>
-                    <p className="mt-3 text-lg font-semibold">Tous vos votes sont enregistrés.</p>
-                    <p className="mt-2 text-sm text-white/60">
-                      Vous pouvez encore modifier chaque vote tant que le bureau n'a pas clôturé la résolution.
-                    </p>
-                  </div>
-                ) : null}
-              </section>
-            );
-          })() : null}
+                    {allVotesDone && representedMembers.length > 1 ? (
+                      <div className="mt-5 rounded-3xl bg-slate-950 p-5 text-center text-white">
+                        <p className="text-3xl">✅</p>
+                        <p className="mt-3 text-lg font-semibold">
+                          Tous vos votes sont enregistrés.
+                        </p>
+                        <p className="mt-2 text-sm text-white/60">
+                          Vous pouvez encore modifier chaque vote tant que le
+                          bureau n'a pas clôturé la résolution.
+                        </p>
+                      </div>
+                    ) : null}
+                  </section>
+                );
+              })()
+            : null}
 
           {!isCheckedIn && !proxyGiven ? (
             <p className="mt-6 rounded-2xl bg-amber-50 px-4 py-4 text-center text-sm text-amber-900 ring-1 ring-amber-100">
