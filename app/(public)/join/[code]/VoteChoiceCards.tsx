@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 type VoteChoice = {
@@ -17,10 +17,10 @@ type VoteChoiceCardsProps = {
   submitVote: (formData: FormData) => Promise<void> | void;
 };
 
-function pauseAutoRefresh() {
+function pauseAutoRefresh(duration = 3000) {
   if (typeof window === "undefined") return;
 
-  (window as Window & { __agConnectPauseRefreshUntil?: number }).__agConnectPauseRefreshUntil = Date.now() + 2500;
+  (window as Window & { __agConnectPauseRefreshUntil?: number }).__agConnectPauseRefreshUntil = Date.now() + duration;
 }
 
 export function VoteChoiceCards({
@@ -38,12 +38,18 @@ export function VoteChoiceCards({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  useEffect(() => {
+    if (savingChoiceId) return;
+    setOptimisticChoiceId(currentChoiceId ?? null);
+    setSavedChoiceId(currentChoiceId ?? null);
+  }, [currentChoiceId, savingChoiceId]);
+
   const selectedChoice = useMemo(
     () => choices.find((choice) => choice.id === optimisticChoiceId),
     [choices, optimisticChoiceId],
   );
 
-  function handleSubmit(choiceId: string, formData: FormData) {
+  function submitChoice(choiceId: string) {
     pauseAutoRefresh();
     setError(null);
     setOptimisticChoiceId(choiceId);
@@ -53,13 +59,19 @@ export function VoteChoiceCards({
       navigator.vibrate?.(25);
     }
 
+    const formData = new FormData();
+    formData.set("accessCode", accessCode);
+    formData.set("resolutionId", resolutionId);
+    formData.set("memberId", memberId);
+    formData.set("choiceId", choiceId);
+
     startTransition(() => {
       void Promise.resolve(submitVote(formData))
         .then(() => {
-          pauseAutoRefresh();
+          pauseAutoRefresh(3500);
           setSavedChoiceId(choiceId);
           setSavingChoiceId(null);
-          window.setTimeout(() => router.refresh(), 400);
+          window.setTimeout(() => router.refresh(), 350);
         })
         .catch(() => {
           setOptimisticChoiceId(savedChoiceId);
@@ -73,12 +85,19 @@ export function VoteChoiceCards({
     <div className="mt-4 grid gap-3">
       {selectedChoice ? (
         <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-100">
-          ✅ Choix sélectionné : <strong>{selectedChoice.label}</strong>
-          <p className="mt-1 text-xs text-emerald-700/70">
-            {savingChoiceId
-              ? "Enregistrement en cours…"
-              : "Votre choix est enregistré et reste modifiable jusqu’à la clôture du vote."}
-          </p>
+          {savingChoiceId ? (
+            <>
+              ⏳ Enregistrement de votre vote : <strong>{selectedChoice.label}</strong>
+              <p className="mt-1 text-xs text-emerald-700/70">Un seul appui suffit. Merci de patienter quelques secondes.</p>
+            </>
+          ) : (
+            <>
+              ✅ Vote enregistré : <strong>{selectedChoice.label}</strong>
+              <p className="mt-1 text-xs text-emerald-700/70">
+                Vous pouvez toucher un autre choix pour modifier votre vote tant que la résolution est ouverte.
+              </p>
+            </>
+          )}
         </div>
       ) : null}
 
@@ -94,38 +113,32 @@ export function VoteChoiceCards({
           const isSavingThisChoice = savingChoiceId === choice.id;
 
           return (
-            <form key={choice.id} action={(formData) => handleSubmit(choice.id, formData)}>
-              <input type="hidden" name="accessCode" value={accessCode} />
-              <input type="hidden" name="resolutionId" value={resolutionId} />
-              <input type="hidden" name="memberId" value={memberId} />
-              <input type="hidden" name="choiceId" value={choice.id} />
-              <button
-                type="submit"
-                onPointerDown={() => {
-                  pauseAutoRefresh();
-                  setOptimisticChoiceId(choice.id);
-                }}
-                className={`min-h-16 w-full touch-manipulation rounded-3xl border px-5 py-5 text-left text-base font-semibold shadow-sm transition active:scale-[0.99] sm:text-lg ${
-                  isSelected
-                    ? "border-emerald-300 bg-emerald-100 text-emerald-950 ring-2 ring-emerald-200"
-                    : "border-slate-200 bg-[#fbfaf7] text-slate-800 hover:border-amber-400 hover:bg-amber-50"
-                }`}
-                aria-pressed={isSelected}
-              >
-                <span className="flex items-center justify-between gap-4">
-                  <span>{choice.label}</span>
-                  {isSelected ? (
-                    <span className="rounded-full bg-white/75 px-3 py-1 text-sm font-bold text-emerald-700 ring-1 ring-emerald-200">
-                      {isSavingThisChoice || isPending ? "Enregistrement…" : "✓ Choix actuel"}
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-white px-3 py-1 text-sm text-slate-400 ring-1 ring-slate-200">
-                      Toucher
-                    </span>
-                  )}
-                </span>
-              </button>
-            </form>
+            <button
+              key={choice.id}
+              type="button"
+              disabled={Boolean(savingChoiceId && !isSavingThisChoice)}
+              onPointerDown={() => pauseAutoRefresh()}
+              onClick={() => submitChoice(choice.id)}
+              className={`min-h-16 w-full touch-manipulation rounded-3xl border px-5 py-5 text-left text-base font-semibold shadow-sm transition active:scale-[0.99] disabled:cursor-wait disabled:opacity-70 sm:text-lg ${
+                isSelected
+                  ? "border-emerald-300 bg-emerald-100 text-emerald-950 ring-2 ring-emerald-200"
+                  : "border-slate-200 bg-[#fbfaf7] text-slate-800 hover:border-amber-400 hover:bg-amber-50"
+              }`}
+              aria-pressed={isSelected}
+            >
+              <span className="flex items-center justify-between gap-4">
+                <span>{choice.label}</span>
+                {isSelected ? (
+                  <span className="rounded-full bg-white/75 px-3 py-1 text-sm font-bold text-emerald-700 ring-1 ring-emerald-200">
+                    {isSavingThisChoice || isPending ? "Enregistrement…" : "✓ Vote enregistré"}
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-white px-3 py-1 text-sm text-slate-400 ring-1 ring-slate-200">
+                    Toucher pour voter
+                  </span>
+                )}
+              </span>
+            </button>
           );
         })}
       </div>
