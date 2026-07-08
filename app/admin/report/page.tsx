@@ -157,6 +157,9 @@ export default async function AdminReportPage() {
               <Link href="/admin/participants" className="rounded-full border border-white/15 bg-white/10 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/15">
                 Feuille de présence
               </Link>
+              <Link href="/admin/finalize" className="rounded-full border border-white/15 bg-white/10 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-white/15">
+                Finaliser / envoyer
+              </Link>
             </div>
           </div>
         </header>

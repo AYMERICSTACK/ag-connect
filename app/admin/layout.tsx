@@ -6,6 +6,7 @@ const links = [
   { href: "/admin/resolutions", label: "Résolutions" },
   { href: "/admin/votes", label: "Votes" },
   { href: "/admin/report", label: "PV" },
+  { href: "/admin/finalize", label: "Finaliser" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
