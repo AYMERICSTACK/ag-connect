@@ -345,61 +345,132 @@ export default async function JoinCodePage({ params }: PageProps) {
             </>
           ) : null}
 
-          {activeResolution && isCheckedIn ? (
-            <section className="mt-8 rounded-[2rem] border border-emerald-200 bg-emerald-50 p-5">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700">Vote ouvert</p>
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-emerald-950">{activeResolution.title}</h2>
-                  {activeResolution.description ? <p className="mt-2 text-sm text-emerald-900/70">{activeResolution.description}</p> : null}
+          {activeResolution && isCheckedIn ? (() => {
+            const voteByMemberId = new Map(activeResolution.votes.map((vote: any) => [vote.memberId, vote]));
+            const pendingMembers = representedMembers.filter((representedMember: any) => !voteByMemberId.has(representedMember.id));
+            const activeVoteMember = pendingMembers[0] ?? null;
+            const allVotesDone = pendingMembers.length === 0;
+            const editableMembers = allVotesDone ? representedMembers : activeVoteMember ? [activeVoteMember] : [];
+
+            return (
+              <section className="mt-8 rounded-[2rem] border border-emerald-200 bg-emerald-50 p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.25em] text-emerald-700">Vote ouvert</p>
+                    <h2 className="mt-2 text-2xl font-semibold tracking-tight text-emerald-950">{activeResolution.title}</h2>
+                    {activeResolution.description ? <p className="mt-2 text-sm text-emerald-900/70">{activeResolution.description}</p> : null}
+                  </div>
+                  <div className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-100">
+                    {representedVotesCount} / {representedMembers.length} vote(s) enregistré(s)
+                  </div>
                 </div>
-                <div className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-emerald-800 ring-1 ring-emerald-100">
-                  {representedVotesCount} / {representedMembers.length} vote(s) enregistré(s)
+
+                {representedMembers.length > 1 ? (
+                  <div className="mt-5 rounded-3xl bg-white p-4 ring-1 ring-emerald-100">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Lots à voter</p>
+                    <div className="mt-3 grid gap-2">
+                      {representedMembers.map((representedMember: any) => {
+                        const vote = voteByMemberId.get(representedMember.id);
+                        const choice = vote
+                          ? activeResolution.choices.find((item: any) => item.id === vote.choiceId)
+                          : null;
+                        const isCurrent = activeVoteMember?.id === representedMember.id;
+
+                        return (
+                          <div
+                            key={representedMember.id}
+                            className={`flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm ring-1 ${
+                              isCurrent
+                                ? "bg-emerald-50 text-emerald-950 ring-emerald-200"
+                                : vote
+                                  ? "bg-white text-slate-700 ring-slate-200"
+                                  : "bg-amber-50 text-amber-900 ring-amber-100"
+                            }`}
+                          >
+                            <div>
+                              <p className="font-semibold">Lot {representedMember.lotNumber}</p>
+                              <p className="text-xs opacity-70">{memberLabel(representedMember)}</p>
+                            </div>
+                            <div className="text-right">
+                              {choice ? (
+                                <>
+                                  <p className="font-semibold text-emerald-700">✓ {choice.label}</p>
+                                  <p className="text-xs text-slate-400">modifiable</p>
+                                </>
+                              ) : isCurrent ? (
+                                <p className="font-semibold text-amber-700">À voter maintenant</p>
+                              ) : (
+                                <p className="font-semibold text-slate-400">En attente</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
+                {!allVotesDone && representedMembers.length > 1 ? (
+                  <div className="mt-5 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900 ring-1 ring-blue-100">
+                    Chaque lot dispose d'une voix. Après validation du lot actuel, l'application passera automatiquement au lot suivant.
+                  </div>
+                ) : null}
+
+                <div className="mt-5 grid gap-4">
+                  {editableMembers.map((representedMember: any) => {
+                    const existingVote = voteByMemberId.get(representedMember.id);
+                    const existingChoice = existingVote
+                      ? activeResolution.choices.find((choice: any) => choice.id === existingVote.choiceId)
+                      : null;
+
+                    return (
+                      <article key={representedMember.id} className="rounded-3xl bg-white p-5 ring-1 ring-emerald-100">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-emerald-700">
+                              {allVotesDone ? "Vote enregistré et modifiable" : "Vote à exprimer maintenant"}
+                            </p>
+                            <h3 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+                              Lot {representedMember.lotNumber}
+                            </h3>
+                            <p className="mt-1 text-sm text-slate-500">{memberLabel(representedMember)}</p>
+                          </div>
+                          {existingChoice ? (
+                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
+                              Vote enregistré : {existingChoice.label}
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
+                              En attente
+                            </span>
+                          )}
+                        </div>
+
+                        <VoteChoiceCards
+                          accessCode={member.accessCode}
+                          resolutionId={activeResolution.id}
+                          memberId={representedMember.id}
+                          choices={activeResolution.choices.map((choice: any) => ({ id: choice.id, label: choice.label }))}
+                          currentChoiceId={existingChoice?.id ?? null}
+                          submitVote={submitVote}
+                        />
+                      </article>
+                    );
+                  })}
                 </div>
-              </div>
 
-              <div className="mt-6 grid gap-4">
-                {representedMembers.map((representedMember: any) => {
-                  const existingVote = activeResolution.votes.find((vote: any) => vote.memberId === representedMember.id);
-                  const existingChoice = existingVote
-                    ? activeResolution.choices.find((choice: any) => choice.id === existingVote.choiceId)
-                    : null;
-
-                  return (
-                    <article key={representedMember.id} className="rounded-3xl bg-white p-5 ring-1 ring-emerald-100">
-                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-500">Vote pour le lot {representedMember.lotNumber}</p>
-                          <p className="text-lg font-semibold text-slate-950">{memberLabel(representedMember)}</p>
-                        </div>
-                        {existingChoice ? (
-                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">Vote enregistré</span>
-                        ) : (
-                          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">En attente</span>
-                        )}
-                      </div>
-
-                      {!existingChoice ? (
-                        <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-100">
-                          Aucun vote enregistré pour le moment.
-                          <p className="mt-1 text-xs text-amber-700/70">Touchez un choix ci-dessous : il sera enregistré immédiatement.</p>
-                        </div>
-                      ) : null}
-
-                      <VoteChoiceCards
-                        accessCode={member.accessCode}
-                        resolutionId={activeResolution.id}
-                        memberId={representedMember.id}
-                        choices={activeResolution.choices.map((choice: any) => ({ id: choice.id, label: choice.label }))}
-                        currentChoiceId={existingChoice?.id ?? null}
-                        submitVote={submitVote}
-                      />
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
-          ) : null}
+                {allVotesDone && representedMembers.length > 1 ? (
+                  <div className="mt-5 rounded-3xl bg-slate-950 p-5 text-center text-white">
+                    <p className="text-3xl">✅</p>
+                    <p className="mt-3 text-lg font-semibold">Tous vos votes sont enregistrés.</p>
+                    <p className="mt-2 text-sm text-white/60">
+                      Vous pouvez encore modifier chaque vote tant que le bureau n'a pas clôturé la résolution.
+                    </p>
+                  </div>
+                ) : null}
+              </section>
+            );
+          })() : null}
 
           {!isCheckedIn && !proxyGiven ? (
             <p className="mt-6 rounded-2xl bg-amber-50 px-4 py-4 text-center text-sm text-amber-900 ring-1 ring-amber-100">
