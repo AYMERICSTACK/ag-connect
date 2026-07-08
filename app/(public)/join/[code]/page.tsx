@@ -2,6 +2,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { AutoRefresh } from "@/components/ui/AutoRefresh";
+import { VoteChoiceCards } from "./VoteChoiceCards";
 
 export const dynamic = "force-dynamic";
 
@@ -378,45 +379,21 @@ export default async function JoinCodePage({ params }: PageProps) {
                         )}
                       </div>
 
-                      {existingChoice ? (
-                        <div className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900 ring-1 ring-emerald-100">
-                          ✅ Votre choix actuel : <strong>{existingChoice.label}</strong>
-                          <p className="mt-1 text-xs text-emerald-700/70">Vous pouvez encore modifier votre vote tant que la résolution n’est pas clôturée.</p>
-                        </div>
-                      ) : (
+                      {!existingChoice ? (
                         <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-100">
                           Aucun vote enregistré pour le moment.
                           <p className="mt-1 text-xs text-amber-700/70">Touchez un choix ci-dessous : il sera enregistré immédiatement.</p>
                         </div>
-                      )}
+                      ) : null}
 
-                      <div className="mt-4 grid gap-2">
-                        {activeResolution.choices.map((choice: any) => {
-                          const isSelected = existingChoice?.id === choice.id;
-
-                          return (
-                            <form key={choice.id} action={submitVote}>
-                              <input type="hidden" name="accessCode" value={member.accessCode} />
-                              <input type="hidden" name="resolutionId" value={activeResolution.id} />
-                              <input type="hidden" name="memberId" value={representedMember.id} />
-                              <input type="hidden" name="choiceId" value={choice.id} />
-                              <button
-                                type="submit"
-                                className={`w-full rounded-2xl border px-4 py-4 text-left text-sm font-semibold transition ${
-                                  isSelected
-                                    ? "border-emerald-300 bg-emerald-100 text-emerald-950 ring-2 ring-emerald-200"
-                                    : "border-slate-200 bg-[#fbfaf7] text-slate-700 hover:border-amber-400 hover:bg-amber-50"
-                                }`}
-                              >
-                                <span className="flex items-center justify-between gap-3">
-                                  <span>{choice.label}</span>
-                                  {isSelected ? <span className="text-emerald-700">✓ Choix actuel</span> : <span className="text-slate-400">Choisir</span>}
-                                </span>
-                              </button>
-                            </form>
-                          );
-                        })}
-                      </div>
+                      <VoteChoiceCards
+                        accessCode={member.accessCode}
+                        resolutionId={activeResolution.id}
+                        memberId={representedMember.id}
+                        choices={activeResolution.choices.map((choice: any) => ({ id: choice.id, label: choice.label }))}
+                        currentChoiceId={existingChoice?.id ?? null}
+                        submitVote={submitVote}
+                      />
                     </article>
                   );
                 })}

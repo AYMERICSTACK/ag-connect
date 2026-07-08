@@ -15,6 +15,12 @@ export function AutoRefresh({ interval = 2500, enabled = true }: AutoRefreshProp
     if (!enabled) return;
 
     const timer = window.setInterval(() => {
+      const pauseUntil = (window as Window & { __agConnectPauseRefreshUntil?: number }).__agConnectPauseRefreshUntil;
+
+      if (pauseUntil && Date.now() < pauseUntil) {
+        return;
+      }
+
       router.refresh();
     }, interval);
 
