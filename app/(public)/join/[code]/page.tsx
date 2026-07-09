@@ -623,6 +623,9 @@ export default async function JoinCodePage({ params }: PageProps) {
                                 }),
                               )}
                               currentChoiceId={existingChoice?.id ?? null}
+                              contextTitle={activeResolution.title}
+                              contextSubtitle={`Lot ${representedMember.lotNumber} · ${memberLabel(representedMember)}`}
+                              drawerEnabled={editableMembers.length === 1}
                               submitVote={submitVote}
                             />
                           </article>
