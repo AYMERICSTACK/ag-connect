@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
     weekday: "long",
     day: "2-digit",
     month: "long",
@@ -16,6 +17,7 @@ function formatDate(date: Date) {
 
 function formatShortDate(date: Date) {
   return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -26,6 +28,7 @@ function formatTime(date?: Date | null) {
   if (!date) return "—";
 
   return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);

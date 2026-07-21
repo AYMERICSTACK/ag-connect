@@ -33,6 +33,7 @@ const V1_RULES = {
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
     weekday: "long",
     day: "2-digit",
     month: "long",
@@ -42,6 +43,7 @@ function formatDate(date: Date) {
 
 function formatTime(date: Date) {
   return new Intl.DateTimeFormat("fr-FR", {
+    timeZone: "Europe/Paris",
     hour: "2-digit",
     minute: "2-digit",
   }).format(date);
